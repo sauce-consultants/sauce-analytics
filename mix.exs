@@ -7,7 +7,15 @@ defmodule SauceAnalytics.MixProject do
       version: "0.1.0",
       elixir: "~> 1.14",
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+
+      # ex_doc
+      name: "sauce_analytics",
+      source_url: "https://github.com/sauce-consultants/sauce-analytics",
+      docs: [
+        main: "SauceAnalytics",
+        extras: ["README.md"]
+      ]
     ]
   end
 

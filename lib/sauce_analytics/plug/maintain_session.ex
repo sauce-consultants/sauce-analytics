@@ -1,4 +1,4 @@
-defmodule SauceAnalytics.MaintainSession do
+defmodule SauceAnalytics.Plug.MaintainSession do
   @moduledoc """
   Plug responsible for creating entries in `Plug.Session` for clients. Required for `SauceAnalytics` to function properly.
 

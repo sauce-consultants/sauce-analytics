@@ -2,6 +2,9 @@ defmodule SauceAnalytics do
   @moduledoc """
   GenServer which is responsible for managing client state and sending requests to the Analytics API.
 
+  The plug `SauceAnalytics.Plug.MaintainSession` is required to run before any function invocations in this module
+  because it depends on keys created in `Plug.Session`.
+
   ## Options
 
   * `:app_info` - `SauceAnalytics.AppInfo` which idenfies the app on the analytics API, ensure the name of the app is unique. Required.
@@ -134,7 +137,7 @@ defmodule SauceAnalytics do
 
   @doc """
   Given a `conn` or a `socket` with session information.
-  A visit request is sent to the Analytics API.
+  An event request is sent to the Analytics API.
 
   ## Example
   Originally intended for Ember, the arguments would be:
@@ -146,6 +149,29 @@ defmodule SauceAnalytics do
   * `name` - A unique string to represent the event (e.g `"users.search"`)
   * `title` - A full URL without query params (e.g `"/list/users"`)
   * `data` - A map with string keys containing any data related to the event (e.g `%{"term" => "John", "results" => [...]`)
+
+  ### LiveView
+  ```
+  defmodule MyApp.Live.ListUsers do
+    use MyApp, :live_view
+
+    # required for any analytics calls in a LiveView
+    on_mount(SauceAnalytics.Live.SetupAssigns)
+
+    def mount(...), do: ...
+
+    def handle_event("search", data, socket) do
+      ...
+
+      {:noreply,
+      socket
+      |> SauceAnalytics.track_event("/users/list", "users.list.search",
+        %{"count" => length(data.results),
+          "results" => data.results}
+      )}
+    end
+  end
+  ```
   """
   @spec track_event(
           conn_or_socket :: Plug.Conn.t() | Phoenix.LiveView.Socket.t(),

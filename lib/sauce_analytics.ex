@@ -118,7 +118,8 @@ defmodule SauceAnalytics do
             conn
             |> fetch_session()
 
-          {get_session(conn, state.session_id_name), Enum.join(Tuple.to_list(conn.remote_ip))}
+          {get_session(conn, state.session_id_name),
+           Enum.join(Tuple.to_list(conn.remote_ip), ".")}
 
         socket when is_struct(socket, Phoenix.LiveView.Socket) ->
           revive_session = socket.assigns[state.revive_session_name]

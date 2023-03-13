@@ -21,7 +21,7 @@ defmodule SauceAnalytics.HTTP do
         ) ::
           {:ok, HTTPoison.Response.t()} | {:error, HTTPoison.Response.t()}
   def post(
-        app_info = %SauceAnalytics.AppInfo{},
+        %SauceAnalytics.AppInfo{} = app_info,
         api_url,
         %SauceAnalytics.HTTP.Request{} = request
       ) do

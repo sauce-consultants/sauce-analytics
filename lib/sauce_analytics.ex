@@ -248,7 +248,7 @@ defmodule SauceAnalytics do
       data: nil
     }
 
-    http_task(state.app_info, state.api_url, request)
+    http_task(state.app_info, state.app_info.api_url, request)
 
     {:noreply, state}
   end
@@ -275,7 +275,7 @@ defmodule SauceAnalytics do
       client_ip: revive_session.client_ip
     }
 
-    http_task(state.app_info, state.api_url, request)
+    http_task(state.app_info, state.app_info.api_url, request)
 
     {:noreply, state}
   end

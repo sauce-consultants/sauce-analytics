@@ -18,7 +18,7 @@ defmodule SauceAnalytics.ReviveSession do
   defstruct @keys ++ [:client_ip]
 
   @type t() :: %__MODULE__{
-          sid: String.t(),
+          sid: reference(),
           uid: String.t() | nil,
           user_agent: String.t(),
           client_ip: String.t() | nil

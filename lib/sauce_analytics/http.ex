@@ -19,7 +19,7 @@ defmodule SauceAnalytics.HTTP do
           api_url :: String.t(),
           request :: SauceAnalytics.HTTP.Request.t()
         ) ::
-          {:ok, %HTTPoison.Response{}} | {:error, %HTTPoison.Response{}}
+          {:ok, HTTPoison.Response.t()} | {:error, HTTPoison.Response.t()}
   def post(
         app_info = %SauceAnalytics.AppInfo{},
         api_url,
@@ -64,13 +64,15 @@ defmodule SauceAnalytics.HTTP do
          %SauceAnalytics.AppInfo{} = app_info,
          %SauceAnalytics.HTTP.Request{} = request
        ) do
+    sid_serialized = request.session_id |> :erlang.ref_to_list() |> List.to_string()
+
     body = %{
       "environment" => app_info.environment,
       "appName" => app_info.name,
       "appVersion" => app_info.version,
       "appHash" => app_info.hash,
       "userAgent" => request.user_agent,
-      "sessionId" => request.session_id,
+      "sessionId" => sid_serialized,
       "viewSequence" => request.view_sequence,
       "eventSequence" => request.event_sequence,
       "globalSequence" => request.view_sequence + request.event_sequence,

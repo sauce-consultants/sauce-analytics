@@ -16,7 +16,7 @@ defmodule SauceAnalytics.Store.Session do
   defstruct @keys
 
   @type t() :: %__MODULE__{
-          sid: String.t(),
+          sid: reference(),
           uid: String.t(),
           user_agent: String.t(),
           view_sequence: integer(),

@@ -1,5 +1,3 @@
-# NOTE TO SELF: UPDATE LAST MODIFIED EVERY WRITE
-
 defmodule SauceAnalytics.Store do
   @moduledoc """
   Session store for analytics information, uses an [ETS](https://www.erlang.org/doc/man/ets.html)
@@ -35,7 +33,7 @@ defmodule SauceAnalytics.Store do
   end
 
   @type session() ::
-          {session_id :: String.t(), user_agent :: String.t(), view_sequence :: integer(),
+          {session_id :: reference(), user_agent :: String.t(), view_sequence :: integer(),
            event_sequence :: integer(), user_id :: String.t(), last_modified :: integer()}
 
   @doc """
@@ -55,7 +53,7 @@ defmodule SauceAnalytics.Store do
   @doc """
   Creates a new session in the Store.
   """
-  @spec new_session(session_id :: String.t(), user_agent :: String.t()) :: :ok
+  @spec new_session(session_id :: reference(), user_agent :: String.t()) :: :ok
   def new_session(session_id, user_agent) do
     GenServer.call(
       __MODULE__,
@@ -66,7 +64,7 @@ defmodule SauceAnalytics.Store do
   @doc """
   Returns a session in the Store.
   """
-  @spec lookup_session(session_id :: String.t()) ::
+  @spec lookup_session(session_id :: reference()) ::
           {:ok, SauceAnalytics.Store.Session.t()} | {:error, :not_found}
   def(lookup_session(session_id)) do
     GenServer.call(__MODULE__, {:lookup_session, session_id})
@@ -87,7 +85,7 @@ defmodule SauceAnalytics.Store do
   @doc """
   Returns true if a session exists in the Store, false otherwise. 
   """
-  @spec session_exists?(session_id :: String.t()) :: boolean()
+  @spec session_exists?(session_id :: reference()) :: boolean()
   def session_exists?(session_id) do
     GenServer.call(__MODULE__, {:session_exists?, session_id})
   end
@@ -95,7 +93,8 @@ defmodule SauceAnalytics.Store do
   @doc """
   Assigns a user to a session in the Store.
   """
-  @spec assign_user(session_id :: String.t(), user_id :: String.t()) :: :ok | {:error, :not_found}
+  @spec assign_user(session_id :: reference(), user_id :: String.t()) ::
+          :ok | {:error, :not_found}
   def assign_user(session_id, user_id) do
     GenServer.call(__MODULE__, {:assign_user, session_id, user_id})
   end
@@ -105,7 +104,7 @@ defmodule SauceAnalytics.Store do
 
   `type` can either be `:view` or `:event`
   """
-  @spec inc_sequence(session_id :: String.t(), type :: :view | :event) ::
+  @spec inc_sequence(session_id :: reference(), type :: :view | :event) ::
           :ok | {:error, :not_found}
   def inc_sequence(session_id, type) when type in [:view, :event] do
     GenServer.call(__MODULE__, {:inc_sequence, session_id, type})

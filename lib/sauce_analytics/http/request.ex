@@ -23,7 +23,7 @@ defmodule SauceAnalytics.HTTP.Request do
           name: String.t(),
           title: String.t(),
           user_agent: String.t(),
-          session_id: String.t(),
+          session_id: reference(),
           client_ip: String.t(),
           user_id: String.t(),
           data: map() | nil

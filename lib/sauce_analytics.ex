@@ -51,7 +51,7 @@ defmodule SauceAnalytics do
           | {:api_url, String.t()}
   @spec start_link([opts]) :: GenServer.on_start()
   def start_link(opts) when is_list(opts),
-    do: Keyword.merge(@default_opts, opts) |> Enum.into(%{}) |> do_start_link()
+    do: Keyword.merge(@default_opts, opts) |> Enum.into(%{}) |> IO.inspect() |> do_start_link()
 
   defp do_start_link(%{app_info: _, api_url: _} = opts) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
@@ -248,7 +248,7 @@ defmodule SauceAnalytics do
       data: nil
     }
 
-    http_task(state.app_info, state.app_info.api_url, request)
+    http_task(state.app_info, state.api_url, request)
 
     {:noreply, state}
   end
@@ -275,7 +275,7 @@ defmodule SauceAnalytics do
       client_ip: revive_session.client_ip
     }
 
-    http_task(state.app_info, state.app_info.api_url, request)
+    http_task(state.app_info, state.api_url, request)
 
     {:noreply, state}
   end

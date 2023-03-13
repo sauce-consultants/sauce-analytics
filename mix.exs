@@ -43,7 +43,7 @@ defmodule SauceAnalytics.MixProject do
 
   defp description do
     """
-    Ecto extensions to support auditing data changes in your Schema.
+    Phoenix library for using the Sauce Analytics API
     """
   end
 

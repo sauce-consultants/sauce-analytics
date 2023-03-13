@@ -8,7 +8,7 @@ defmodule SauceAnalytics do
   ## Options
 
   * `:app_info` - `SauceAnalytics.AppInfo` which idenfies the app on the analytics API, ensure the name of the app is unique. Required.
-  * `:endpoint` - The URL of the Sauce Analytics API which will be used for visit and event requests. Required.
+  * `:api_url` - The URL of the Sauce Analytics API which will be used for visit and event requests. Required.
   * `:session_id_name` - The name of the key which will be used in the `Plug.Session` for storing the session's id. Defaults to `:sauce_analytics_session_id`.
   * `:revive_session_name` - The name of the key which will be used in the `Plug.Session` and `socket.assigns` for storing the `SauceAnalytics.ReviveSession` struct. Defaults to `:sauce_analytics_session_revive_info`. 
   * `:revive_session_cookie_name` - The name of the cookie used for storing the `SauceAnalytics.ReviveSession` struct. Defaults to `"sauce_analytics_session_revive_info"`.
@@ -25,13 +25,13 @@ defmodule SauceAnalytics do
   defmodule State do
     @moduledoc "The state of the `SauceAnalytics` GenServer"
 
-    @keys ~w(app_info endpoint session_id_name revive_session_name revive_session_cookie_name)a
+    @keys ~w(app_info api_url session_id_name revive_session_name revive_session_cookie_name)a
     @enforce_keys @keys
     defstruct @keys
 
     @type t() :: %__MODULE__{
             app_info: SauceAnalytics.AppInfo.t(),
-            endpoint: String.t(),
+            api_url: String.t(),
             session_id_name: atom(),
             revive_session_name: atom(),
             revive_session_cookie_name: String.t()
@@ -220,7 +220,7 @@ defmodule SauceAnalytics do
   def init(opts) do
     state = %State{
       app_info: opts[:app_info],
-      endpoint: opts[:endpoint],
+      api_url: opts[:api_url],
       session_id_name: opts[:session_id_name],
       revive_session_name: opts[:revive_session_name],
       revive_session_cookie_name: opts[:revive_session_cookie_name]

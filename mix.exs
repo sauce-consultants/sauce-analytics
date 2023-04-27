@@ -8,6 +8,7 @@ defmodule SauceAnalytics.MixProject do
       elixir: "~> 1.14",
       package: package(),
       start_permanent: Mix.env() == :prod,
+      elixirc_paths: elixirc_paths(Mix.env()),
       deps: deps(),
       description: description(),
       # ex_doc
@@ -23,9 +24,17 @@ defmodule SauceAnalytics.MixProject do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      extra_applications: [:logger, :retry]
+      extra_applications: [:logger, :retry, :phoenix_live_view],
+      applications: applications(Mix.env())
     ]
   end
+
+  defp elixirc_paths(:test), do: elixirc_paths(:default) ++ ["test/support"]
+  defp elixirc_paths(_), do: ["lib"]
+
+  defp applications(:test), do: applications(:default) ++ [:cowboy, :plug, :jason]
+  defp applications(_), do: [:httpoison, :phoenix_live_view]
+
 
   # Run "mix help deps" to learn about dependencies.
   defp deps do
@@ -35,7 +44,8 @@ defmodule SauceAnalytics.MixProject do
       {:phoenix_live_view, "~> 0.18", runtime: false},
       {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
       {:retry, "~> 0.17"},
-      {:httpoison, "~> 2.0"}
+      {:httpoison, "~> 2.0"},
+      {:jason, "~> 1.0", only: [:dev, :test]}
       # {:dep_from_hexpm, "~> 0.3.0"},
       # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"}
     ]

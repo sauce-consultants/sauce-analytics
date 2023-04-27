@@ -14,16 +14,17 @@ defmodule SauceAnalytics.Live.SetupAssigns do
         socket
       ) do
     state = SauceAnalytics.get_state()
-    key_name = Atom.to_string(state.revive_session_name)
-    %{^key_name => revive_info} = session
+    key = Atom.to_string(state.session_name)
+    
+    %{^key => analytics_session} = session
 
-    SauceAnalytics.Store.maybe_revive_session(revive_info)
+    SauceAnalytics.Store.maybe_restore_entry(analytics_session.sid)
     %{address: address} = get_connect_info(socket, :peer_data)
 
     client_ip = Enum.join(Tuple.to_list(address), ".")
 
     {:cont,
      socket
-     |> assign(state.revive_session_name, %{revive_info | client_ip: client_ip})}
+     |> assign(key, %{analytics_session | client_ip: client_ip})}
   end
 end

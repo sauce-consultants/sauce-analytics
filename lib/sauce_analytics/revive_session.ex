@@ -1,4 +1,4 @@
-defmodule SauceAnalytics.ReviveSession do
+defmodule SauceAnalytics.Session do
   @moduledoc """
   This struct contains the minimum amount of information that can be used to
   revive a session.

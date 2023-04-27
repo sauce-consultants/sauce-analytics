@@ -14,40 +14,38 @@ defmodule SauceAnalytics.Plug.MaintainSession do
   def call(conn, _opts) do
     state = SauceAnalytics.get_state()
 
-    conn =
+    {conn, session_id} =
       conn
       |> fetch_session()
+      |> create_session(state.session_name)
 
-    session_id = get_session(conn, state.session_id_name)
-    user_agent = List.first(get_req_header(conn, "user-agent"))
-
-    conn =
-      if session_id == nil do
-        session_id = make_ref()
-
-        revive_info = %SauceAnalytics.ReviveSession{
-          sid: session_id,
-          uid: nil,
-          user_agent: user_agent,
-          client_ip: Enum.join(Tuple.to_list(conn.remote_ip), ".")
-        }
-
-        conn
-        |> put_session(state.session_id_name, session_id)
-        |> put_session(state.revive_session_name, revive_info)
-      else
-        conn
-      end
-
-    session_id = get_session(conn, state.session_id_name)
-
-    unless SauceAnalytics.Store.session_exists?(session_id) do
-      SauceAnalytics.Store.new_session(
-        session_id,
-        user_agent
-      )
+    unless SauceAnalytics.Store.entry_exists?(session_id) do
+      SauceAnalytics.Store.new_entry(session_id)
     end
 
     conn
   end
+
+  defp create_session(conn, key) do
+    session = get_session(conn, key)
+
+    if is_nil(session) do
+      session_id = make_ref()
+
+      user_agent = List.first(get_req_header(conn, "user-agent"))
+
+      session = %SauceAnalytics.Session{
+        sid: session_id,
+        uid: nil,
+        user_agent: user_agent,
+        client_ip: Enum.join(Tuple.to_list(conn.remote_ip), ".")
+      }
+
+      {conn
+      |> put_session(key, session), session_id}
+    else
+      {conn, session}
+    end
+  end
+
 end

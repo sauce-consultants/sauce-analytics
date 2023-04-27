@@ -16,25 +16,25 @@ defmodule SauceAnalytics do
   require Logger
   use GenServer
 
+  import Plug.Conn
+
   @default_opts [
-    session_id_name: :sauce_analytics_session_id,
-    revive_session_name: :sauce_analytics_session_revive_info,
-    revive_session_cookie_name: "sauce_analytics_session_revive_info"
+    session_name: :sauce_analytics_session,
+    session_cookie_name: "sauce_analytics_session"
   ]
 
   defmodule State do
     @moduledoc "The state of the `SauceAnalytics` GenServer"
 
-    @keys ~w(app_info api_url session_id_name revive_session_name revive_session_cookie_name)a
+    @keys ~w(app_info api_url session_name session_cookie_name)a
     @enforce_keys @keys
     defstruct @keys
 
     @type t() :: %__MODULE__{
             app_info: SauceAnalytics.AppInfo.t(),
             api_url: String.t(),
-            session_id_name: atom(),
-            revive_session_name: atom(),
-            revive_session_cookie_name: String.t()
+            session_name: atom(),
+            session_cookie_name: String.t()
           }
   end
 
@@ -44,14 +44,13 @@ defmodule SauceAnalytics do
   Use this in your application supervision tree.
   """
   @type opts ::
-          {:session_id_name, atom()}
-          | {:revive_session_name, atom()}
-          | {:revive_session_cookie_name, String.t()}
+          {:session_name, atom()}
+          | {:session_cookie_name, String.t()}
           | {:app_info, SauceAnalytics.AppInfo.t()}
           | {:api_url, String.t()}
   @spec start_link([opts]) :: GenServer.on_start()
   def start_link(opts) when is_list(opts),
-    do: Keyword.merge(@default_opts, opts) |> Enum.into(%{}) |> IO.inspect() |> do_start_link()
+    do: Keyword.merge(@default_opts, opts) |> Enum.into(%{}) |> do_start_link()
 
   defp do_start_link(%{app_info: _, api_url: _} = opts) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
@@ -66,24 +65,15 @@ defmodule SauceAnalytics do
   """
   @spec assign_user(conn :: Plug.Conn.t(), user_id :: String.t() | nil) :: Plug.Conn.t()
   def assign_user(conn, user_id) do
-    import Plug.Conn
-
     state = get_state()
 
-    session_id =
+    session =
       conn
       |> fetch_session()
-      |> get_session(state.session_id_name)
-
-    SauceAnalytics.Store.assign_user(session_id, user_id)
-
-    revive_info =
-      conn
-      |> fetch_session()
-      |> get_session(state.revive_session_name)
+      |> get_session(state.session_name)
 
     conn
-    |> put_session(state.revive_session_name, %{revive_info | uid: user_id})
+    |> put_session(state.session_name, %{session | uid: user_id})
   end
 
   @doc """
@@ -107,30 +97,14 @@ defmodule SauceAnalytics do
         ) :: Plug.Conn.t() | Phoenix.LiveView.Socket.t()
   def track_visit(%module{} = conn_or_socket, name, title)
       when module in [Plug.Conn, Phoenix.LiveView.Socket] do
-    import Plug.Conn
-
     state = get_state()
 
-    {session_id, client_ip} =
-      case conn_or_socket do
-        conn when is_struct(conn, Plug.Conn) ->
-          conn =
-            conn
-            |> fetch_session()
-
-          {get_session(conn, state.session_id_name),
-           Enum.join(Tuple.to_list(conn.remote_ip), ".")}
-
-        socket when is_struct(socket, Phoenix.LiveView.Socket) ->
-          revive_session = socket.assigns[state.revive_session_name]
-          SauceAnalytics.Store.maybe_revive_session(revive_session)
-
-          {revive_session.sid, revive_session.client_ip}
-      end
+    session = get_analytics_session(conn_or_socket, state.session_name)
+    SauceAnalytics.Store.maybe_restore_entry(session.sid)
 
     GenServer.cast(
       __MODULE__,
-      {:visit, session_id, name, title, client_ip}
+      {:visit, session, name, title}
     )
 
     conn_or_socket
@@ -182,28 +156,14 @@ defmodule SauceAnalytics do
         ) :: Plug.Conn.t() | Phoenix.LiveView.Socket.t()
   def track_event(%module{} = conn_or_socket, name, title, data \\ nil)
       when module in [Plug.Conn, Phoenix.LiveView.Socket] do
-    import Plug.Conn
-
     state = get_state()
 
-    revive_session =
-      case conn_or_socket do
-        conn when is_struct(conn, Plug.Conn) ->
-          conn =
-            conn
-            |> fetch_cookies(signed: String.to_atom(state.revive_session_cookie_name))
-
-          conn.cookies[state.revive_session_cookie_name]
-
-        socket when is_struct(socket, Phoenix.LiveView.Socket) ->
-          socket.assigns[state.revive_session_name]
-      end
-
-    SauceAnalytics.Store.maybe_revive_session(revive_session)
+    session = get_analytics_session(conn_or_socket, state.session_cookie_name, true)
+    SauceAnalytics.Store.maybe_restore_entry(session.sid)
 
     GenServer.cast(
       __MODULE__,
-      {:event, revive_session, name, title, data}
+      {:event, session, name, title, data}
     )
 
     conn_or_socket
@@ -222,30 +182,29 @@ defmodule SauceAnalytics do
     state = %State{
       app_info: opts[:app_info],
       api_url: opts[:api_url],
-      session_id_name: opts[:session_id_name],
-      revive_session_name: opts[:revive_session_name],
-      revive_session_cookie_name: opts[:revive_session_cookie_name]
+      session_name: opts[:session_name],
+      session_cookie_name: opts[:session_cookie_name]
     }
 
     {:ok, state}
   end
 
   @impl true
-  def handle_cast({:visit, sid, name, title, client_ip}, state) do
-    :ok = SauceAnalytics.Store.inc_sequence(sid, :view)
+  def handle_cast({:visit, session, name, title}, state) do
+    :ok = SauceAnalytics.Store.inc_sequence(session.sid, :view)
 
-    {:ok, session} = SauceAnalytics.Store.lookup_session(sid)
+    {:ok, entry} = SauceAnalytics.Store.lookup_entry(session.sid)
 
     request = %SauceAnalytics.HTTP.Request{
       type: :visit,
       name: name,
       title: title,
-      view_sequence: session.view_sequence,
-      event_sequence: session.event_sequence,
+      view_sequence: entry.view_sequence,
+      event_sequence: entry.event_sequence,
       user_agent: session.user_agent,
       session_id: session.sid,
       user_id: session.uid,
-      client_ip: client_ip,
+      client_ip: session.client_id,
       data: nil
     }
 
@@ -256,24 +215,24 @@ defmodule SauceAnalytics do
 
   @impl true
   def handle_cast(
-        {:event, %SauceAnalytics.ReviveSession{} = revive_session, name, title, data},
+        {:event, %SauceAnalytics.Session{} = session, name, title, data},
         state
       ) do
-    SauceAnalytics.Store.inc_sequence(revive_session.sid, :event)
+    SauceAnalytics.Store.inc_sequence(session.sid, :event)
 
-    {:ok, session} = SauceAnalytics.Store.lookup_session(revive_session.sid)
+    {:ok, entry} = SauceAnalytics.Store.lookup_entry(session.sid)
 
     request = %SauceAnalytics.HTTP.Request{
       type: :event,
       name: name,
       title: title,
-      view_sequence: session.view_sequence,
-      event_sequence: session.event_sequence,
+      view_sequence: entry.view_sequence,
+      event_sequence: entry.event_sequence,
       user_agent: session.user_agent,
       session_id: session.sid,
       user_id: session.uid,
       data: data,
-      client_ip: revive_session.client_ip
+      client_ip: session.client_ip
     }
 
     http_task(state.app_info, state.api_url, request)
@@ -297,5 +256,26 @@ defmodule SauceAnalytics do
       result = SauceAnalytics.HTTP.post(app_info, api_url, request)
       GenServer.cast(__MODULE__, {:handle_http_result, result})
     end)
+  end
+
+  defp get_analytics_session(conn_or_socket, key, cookie \\ false)
+  defp get_analytics_session(%Plug.Conn{} = conn, key, cookie) do
+    if cookie do
+      conn =
+        conn
+        |> fetch_cookies(signed: String.to_atom(key))
+
+      conn.cookies[key]
+    else
+    conn =
+      conn
+      |> fetch_session()
+    
+      get_session(conn, key)
+    end
+  end
+
+  defp get_analytics_session(%Phoenix.LiveView.Socket{} = socket, key, _cookie) do 
+    socket.assigns[key]
   end
 end

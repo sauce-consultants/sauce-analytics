@@ -10,7 +10,7 @@ defmodule SauceAnalytics.HTTP.Request do
     client_ip
     user_id
     data
-  )a
+   )a
 
   @enforce_keys @keys
   defstruct @keys

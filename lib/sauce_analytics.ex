@@ -204,7 +204,7 @@ defmodule SauceAnalytics do
       user_agent: session.user_agent,
       session_id: session.sid,
       user_id: session.uid,
-      client_ip: session.client_id,
+      client_ip: session.client_ip,
       data: nil
     }
 

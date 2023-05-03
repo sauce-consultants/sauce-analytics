@@ -133,7 +133,7 @@ defmodule SauceAnalytics.Store do
 
   @impl true
   def handle_call({:lookup_session, session_id}, _from, state) do
-    if entry_exists?(session_id) do
+    if :ets.member(state.table_name, session_id) do
       [entry] = :ets.lookup(state.table_name, session_id)
 
       {:reply, {:ok, entry_to_struct(entry)}, state}
@@ -145,6 +145,7 @@ defmodule SauceAnalytics.Store do
   @impl true
   def handle_call({:inc_sequence, session_id, type}, _from, state) do
     if :ets.member(state.table_name, session_id) do
+      update_last_written(state.table_name, session_id)
       pos =
         case type do
           :view -> 2
@@ -182,6 +183,10 @@ defmodule SauceAnalytics.Store do
   @impl true
   def handle_call({:get_state}, _from, state) do
     {:reply, state, state}
+  end
+
+  defp update_last_written(table, session_id) do
+    :ets.update_element(table, session_id, {3, now()})
   end
 
   defp clean_tick(interval_seconds) do

@@ -119,8 +119,7 @@ defmodule SauceAnalyticsTest do
       |> plug_maintain_session()
 
       SauceAnalytics.track_visit(conn, "what", "what")
-      :sys.get_state(SauceAnalytics)
-      Process.sleep(5555)
+      IO.inspect(MockResponse.get_resp_or_wait(), label: "response!!")
     end
   end
 

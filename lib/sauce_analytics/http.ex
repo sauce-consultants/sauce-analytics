@@ -85,8 +85,13 @@ defmodule SauceAnalytics.HTTP do
     }
 
     case request.type do
-      :visit -> body
-      :event -> Map.put(body, "data", request.data)
+      :visit ->
+        body
+        |> Map.delete("eventSequence")
+      :event ->
+        body
+        |> Map.put("data", request.data)
+        |> Map.delete("viewSequence")
     end
     |> Jason.encode()
   end

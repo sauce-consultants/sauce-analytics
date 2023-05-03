@@ -8,7 +8,6 @@ defmodule SauceAnalytics.MixProject do
       elixir: "~> 1.14",
       package: package(),
       start_permanent: Mix.env() == :prod,
-      elixirc_paths: elixirc_paths(Mix.env()),
       deps: deps(),
       description: description(),
       # ex_doc
@@ -29,10 +28,7 @@ defmodule SauceAnalytics.MixProject do
     ]
   end
 
-  defp elixirc_paths(:test), do: elixirc_paths(:default) ++ ["test/support"]
-  defp elixirc_paths(_), do: ["lib"]
-
-  defp applications(:test), do: applications(:default) ++ [:cowboy, :plug, :jason]
+  defp applications(:test), do: applications(:default) ++ [:cowboy, :plug, :jason, :bypass]
   defp applications(_), do: [:httpoison, :phoenix_live_view]
 
 

@@ -10,7 +10,7 @@ defmodule SauceAnalytics.Plug.MaintainSession do
   def init(options) do
     options
   end
-
+  
   def call(conn, _opts) do
     state = SauceAnalytics.get_state()
 

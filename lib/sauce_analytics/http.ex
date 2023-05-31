@@ -78,7 +78,6 @@ defmodule SauceAnalytics.HTTP do
       "userAgent" => request.user_agent,
       "sessionId" => sid_serialized,
       "viewSequence" => request.view_sequence,
-      "eventSequence" => request.event_sequence,
       "globalSequence" => request.view_sequence + request.event_sequence,
       "name" => request.name,
       "title" => request.title,
@@ -88,11 +87,9 @@ defmodule SauceAnalytics.HTTP do
     case request.type do
       :visit ->
         body
-        |> Map.delete("eventSequence")
       :event ->
         body
         |> Map.put("data", request.data)
-        |> Map.delete("viewSequence")
     end
     |> Jason.encode()
   end

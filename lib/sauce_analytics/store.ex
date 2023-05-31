@@ -136,7 +136,7 @@ defmodule SauceAnalytics.Store do
     if :ets.member(state.table_name, session_id) do
       [entry] = :ets.lookup(state.table_name, session_id)
 
-k      {:reply, {:ok, entry_to_struct(entry)}, state}
+      {:reply, {:ok, entry_to_struct(entry)}, state}
     else
       {:reply, {:error, :not_found}}
     end

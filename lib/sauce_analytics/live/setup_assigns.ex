@@ -8,7 +8,7 @@ defmodule SauceAnalytics.Live.SetupAssigns do
   import Phoenix.Component
 
   def on_mount(
-        :default,
+        _,
         _params,
         session,
         socket

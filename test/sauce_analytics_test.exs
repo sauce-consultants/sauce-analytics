@@ -20,6 +20,17 @@ defmodule SauceAnalyticsTest do
       api_url: "http://localhost:#{bypass.port}",
     ]
 
+    opts =
+      if context[:send_response] do
+        pid = self()
+        
+        opts
+        |> Keyword.put(:on_request_finish, fn resp -> send(pid, {:finish, resp}) end)
+      else
+        opts
+      end
+
+
     unless context[:no_start] do
       start_supervised({SauceAnalytics, opts})
       start_supervised(SauceAnalytics.Store)
@@ -63,7 +74,8 @@ defmodule SauceAnalyticsTest do
         },
         api_url: "http://localhost:4000",
         session_name: :session_id,
-        session_cookie_name: "session_cookie"
+        session_cookie_name: "session_cookie",
+        on_request_finish: &SauceAnalytics.default_on_finish/1
       } == :sys.get_state(SauceAnalytics)
     end
     
@@ -92,7 +104,8 @@ defmodule SauceAnalyticsTest do
          },
         api_url: "http://localhost:4000",
         session_name: :sauce_analytics_session,
-        session_cookie_name: "sauce_analytics_session"
+        session_cookie_name: "sauce_analytics_session",
+        on_request_finish: &SauceAnalytics.default_on_finish/1
       } == :sys.get_state(SauceAnalytics)
     end
     
@@ -139,13 +152,34 @@ defmodule SauceAnalyticsTest do
     end
   end
 
+  @tag :send_response
   describe "track_visit/3" do
     test "should track a visit using a conn", context do
-      IO.inspect(context, label: "whatgasdf")
+      Bypass.expect_once(context[:bypass], "POST", "/visits", fn conn ->
+        {:ok, body, _conn} = read_body(conn)
+        
+        conn
+        |> resp(200, body)
+      end)
       
       conn = context[:conn]
       |> plug_maintain_session()
       SauceAnalytics.track_visit(conn, "what", "what")
+
+      {:ok, response} = receive do
+        {:finish, resp} -> resp
+      end
+
+      {:ok, body} = Jason.decode(response.body)
+
+      assert "ffffff" == body["appHash"]
+      assert "SauceAnalytics Tests" == body["appName"]
+      assert "0.1.0" == body["appVersion"]
+      assert "test" == body["environment"]
+      assert 1 == body["globalSequence"]
+      assert "what" == body["name"]
+      assert "what" == body["title"]
+      assert 1 == body["viewSequence"]
     end
   end
 

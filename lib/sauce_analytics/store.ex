@@ -136,7 +136,7 @@ defmodule SauceAnalytics.Store do
     if :ets.member(state.table_name, session_id) do
       [entry] = :ets.lookup(state.table_name, session_id)
 
-      {:reply, {:ok, entry_to_struct(entry)}, state}
+k      {:reply, {:ok, entry_to_struct(entry)}, state}
     else
       {:reply, {:error, :not_found}}
     end
@@ -186,7 +186,7 @@ defmodule SauceAnalytics.Store do
   end
 
   defp update_last_written(table, session_id) do
-    :ets.update_element(table, session_id, {3, now()})
+    :ets.update_element(table, session_id, {4, now()})
   end
 
   defp clean_tick(interval_seconds) do

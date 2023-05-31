@@ -64,6 +64,7 @@ defmodule SauceAnalytics.HTTP do
          %SauceAnalytics.AppInfo{} = app_info,
          %SauceAnalytics.HTTP.Request{} = request
        ) do
+
     sid_serialized =
       request.session_id
       |> :erlang.ref_to_list()

@@ -20,13 +20,14 @@ defmodule SauceAnalytics do
 
   @default_opts [
     session_name: :sauce_analytics_session,
-    session_cookie_name: "sauce_analytics_session"
+    session_cookie_name: "sauce_analytics_session",
+    on_request_finish: &SauceAnalytics.default_on_finish/1
   ]
 
   defmodule State do
     @moduledoc "The state of the `SauceAnalytics` GenServer"
 
-    @keys ~w(app_info api_url session_name session_cookie_name)a
+    @keys ~w(app_info api_url session_name session_cookie_name on_request_finish)a
     @enforce_keys @keys
     defstruct @keys
 
@@ -34,7 +35,8 @@ defmodule SauceAnalytics do
             app_info: SauceAnalytics.AppInfo.t(),
             api_url: String.t(),
             session_name: atom(),
-            session_cookie_name: String.t()
+            session_cookie_name: String.t(),
+            on_request_finish: function()
           }
   end
 
@@ -48,6 +50,7 @@ defmodule SauceAnalytics do
           | {:session_cookie_name, String.t()}
           | {:app_info, SauceAnalytics.AppInfo.t()}
           | {:api_url, String.t()}
+          | {:on_request_finish, function()}
   @spec start_link([opts]) :: GenServer.on_start()
   def start_link(opts) when is_list(opts),
     do: Keyword.merge(@default_opts, opts) |> Enum.into(%{}) |> do_start_link()
@@ -183,7 +186,8 @@ defmodule SauceAnalytics do
       app_info: opts[:app_info],
       api_url: opts[:api_url],
       session_name: opts[:session_name],
-      session_cookie_name: opts[:session_cookie_name]
+      session_cookie_name: opts[:session_cookie_name],
+      on_request_finish: opts[:on_request_finish]
     }
 
     {:ok, state}
@@ -247,7 +251,7 @@ defmodule SauceAnalytics do
 
   @impl true
   def handle_cast({:handle_http_result, result}, state) do
-    Logger.debug("Recieved response from Sauce Analytics: #{inspect(result)}")
+    state.on_request_finish.(result)
     {:noreply, state}
   end
 
@@ -278,4 +282,6 @@ defmodule SauceAnalytics do
   defp get_analytics_session(%Phoenix.LiveView.Socket{} = socket, key, _cookie) do 
     socket.assigns[key]
   end
+
+  def default_on_finish(_response), do: nil
 end

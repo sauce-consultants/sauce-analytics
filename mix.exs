@@ -4,13 +4,12 @@ defmodule SauceAnalytics.MixProject do
   def project do
     [
       app: :sauce_analytics,
-      version: "0.1.1",
+      version: "0.1.2",
       elixir: "~> 1.14",
       package: package(),
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       description: description(),
-      # ex_doc
       name: "sauce_analytics",
       source_url: "https://github.com/sauce-consultants/sauce-analytics",
       docs: [
@@ -43,8 +42,6 @@ defmodule SauceAnalytics.MixProject do
       {:httpoison, "~> 2.0"},
       {:jason, "~> 1.0", only: [:dev, :test]},
       {:bypass, "~> 2.1", only: :test}
-      # {:dep_from_hexpm, "~> 0.3.0"},
-      # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"}
     ]
   end
 
